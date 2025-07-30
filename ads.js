@@ -20,7 +20,10 @@
         // Firebase Persistence Setting
         firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
             .then(() => {
-                console.log(getTranslation('alertFirebasePersistenceError') + " (set to LOCAL).");
+                // Use getTranslation here, but ensure it's loaded.
+                // For this specific log, it might be better to hardcode or ensure language.js loads first.
+                // console.log(getTranslation('alertFirebasePersistenceSuccess') + " (set to LOCAL).");
+                console.log("Firebase persistence set to LOCAL successfully."); // Fallback or direct string
             })
             .catch((error) => {
                 console.error(getTranslation('alertFirebasePersistenceError'), error);
@@ -155,6 +158,13 @@
             loginForm.style.display = 'block';
         });
 
+        // Helper function to reset form visibility
+        function resetAuthFormVisibility() {
+            // Default to showing login form, hiding register form
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+        }
+
         // Firebase Authentication State Observer
         auth.onAuthStateChanged((user) => {
             if (user) {
@@ -221,6 +231,8 @@
                         console.warn("Could not close ad window on logout:", e);
                     }
                 }
+                // Reset form visibility when user logs out or is not authenticated
+                resetAuthFormVisibility();
             }
         });
 
@@ -453,3 +465,39 @@
                     alert(getTranslation('alertWithdrawRequestError') + " " + error.message);
                 });
         });
+
+        // Add this event listener to handle language change and reset form visibility
+        // This assumes your language.js exposes a custom event or a way to hook into language changes.
+        // A more robust solution might involve modifying language.js to emit a custom event.
+        // For now, we'll assume language.js is correctly setting currentLang and calling applyTranslations.
+        // You can add a direct call to resetAuthFormVisibility after applyTranslations in language.js
+        // Or, if you control when applyTranslations is called, call resetAuthFormVisibility after that.
+
+        // A simple way to integrate this if applyTranslations is called directly is:
+        // window.addEventListener('languageChanged', resetAuthFormVisibility); 
+        // Or, if the language selection pop-up handles it, ensure it calls this.
+
+        // For simplicity and direct solution for the current problem:
+        // If your language.js's setLanguage function exists globally, you can modify it.
+        // Or ensure that after initial load or language change, loginForm is 'block' and registerForm is 'none'.
+        // Let's add it to the initial load and onAuthStateChanged (for logout).
+        document.addEventListener('DOMContentLoaded', () => {
+            resetAuthFormVisibility(); // Set initial state correctly
+        });
+
+        // If you are calling applyTranslations directly from your language.js after changing language,
+        // you might need to add resetAuthFormVisibility() call there as well.
+        // Example:
+        /*
+        // Inside language.js, after applyTranslations() is done:
+        function setLanguage(lang) {
+            // ... (existing language selection logic)
+            applyTranslations(lang);
+            // After applying translations, reset auth form visibility
+            if (typeof resetAuthFormVisibility === 'function') {
+                resetAuthFormVisibility();
+            }
+        }
+        */
+
+                
