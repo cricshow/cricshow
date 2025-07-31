@@ -146,7 +146,7 @@ const translations = {
         "withdrawalRequest": "निकासी अनुरोध",
         "currentBalance": "आपका वर्तमान बैलेंस",
         "minimumWithdrawal": "न्यूनतम निकासी",
-        "withdrawalAmountPlaceholder": "निकासी राशि (PKR)",
+        "withdrawalAmountPlaceholder": "निकासी राशि (PKR)", // Changed to PKR (if needed, adjust per country)
         "selectPaymentMethod": "भुगतान विधि चुनें",
         "accountDetailsPlaceholder": "खाता संख्या / आईडी (उदाहरण: JazzCash: 03xxxxxxxxx)",
         "submitRequest": "अनुरोध सबमिट करें",
@@ -205,7 +205,7 @@ const translations = {
         "withdrawalRequest": "Para Çekme Talebi",
         "currentBalance": "Mevcut Bakiyeniz",
         "minimumWithdrawal": "Minimum Para Çekme",
-        "withdrawalAmountPlaceholder": "Para Çekme Tutarı (PKR)",
+        "withdrawalAmountPlaceholder": "Para Çekme Tutarı (PKR)", // Changed to PKR (if needed, adjust per country)
         "selectPaymentMethod": "Ödeme Yöntemi Seçin",
         "accountDetailsPlaceholder": "Hesap Numarası / Kimliği (örn: JazzCash: 03xxxxxxxxx)",
         "submitRequest": "Talebi Gönder",
@@ -264,7 +264,7 @@ const translations = {
         "withdrawalRequest": "طلب سحب",
         "currentBalance": "رصيدك الحالي",
         "minimumWithdrawal": "الحد الأدنى للسحب",
-        "withdrawalAmountPlaceholder": "مبلغ السحب (PKR)",
+        "withdrawalAmountPlaceholder": "مبلغ السحب (PKR)", // Changed to PKR (if needed, adjust per country)
         "selectPaymentMethod": "اختر طريقة الدفع",
         "accountDetailsPlaceholder": "رقم الحساب / الهوية (مثال: JazzCash: 03xxxxxxxxx)",
         "submitRequest": "إرسال الطلب",
@@ -952,6 +952,15 @@ const translations = {
 
 let currentLang = localStorage.getItem('appLanguage') || 'en'; // Default to English if not set
 
+// Make getTranslation globally accessible
+window.getTranslation = function(key, replacements = {}) {
+    let text = translations[currentLang][key] || translations['en'][key] || key; // Fallback to English, then key itself
+    for (const placeholder in replacements) {
+        text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+    }
+    return text;
+};
+
 // Function to set language and apply translations
 function setLanguage(langCode) {
     if (translations[langCode]) {
@@ -960,22 +969,13 @@ function setLanguage(langCode) {
         applyTranslations();
         updateCurrencySymbol(); // Update currency symbol based on language
     } else {
-        console.warn(`Translation for language code '${langCode}' not found.`);
+        console.warn(`Translation for language code '${langCode}' not found. Falling back to English.`);
         // Fallback to default English if the selected language is not defined
         currentLang = 'en';
         localStorage.setItem('appLanguage', 'en');
         applyTranslations();
         updateCurrencySymbol();
     }
-}
-
-// Function to get translated text
-function getTranslation(key, replacements = {}) {
-    let text = translations[currentLang][key] || translations['en'][key] || key; // Fallback to English, then key itself
-    for (const placeholder in replacements) {
-        text = text.replace(`{${placeholder}}`, replacements[placeholder]);
-    }
-    return text;
 }
 
 // Function to apply translations to all elements with data-translate attribute
@@ -985,23 +985,65 @@ function applyTranslations() {
 
     document.querySelectorAll('[data-translate]').forEach(element => {
         const key = element.getAttribute('data-translate');
-        // Store original text for elements that might have dynamic content (like timer/balance values)
-        // For static text content, just update.
-        if (element.id !== 'balance' && element.id !== 'impressions' && element.id !== 'timer' &&
-            element.id !== 'currentBalanceWithdraw' && element.id !== 'minWithdrawAmount') {
+        // Only update textContent for elements that are purely for translation
+        // Avoid updating elements whose content is dynamically set by main JavaScript (e.g., balance, impressions, timer)
+        // Ensure buttons and links are updated
+        if (element.tagName === 'BUTTON' || element.tagName === 'A' || element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3' || element.tagName === 'P' || element.tagName === 'SPAN') {
+            // Exclude elements that are known to be updated by main script for values
+            if (!['balance', 'impressions', 'timer', 'currentBalanceWithdraw', 'minWithdrawAmount'].includes(element.id)) {
+                element.textContent = getTranslation(key);
+            }
+        } else if (element.tagName === 'OPTION' && element.parentElement.id === 'paymentMethod') {
+            // Handle select options if they are static and need translation
             element.textContent = getTranslation(key);
         }
     });
 
-    // Update placeholders manually as data-translate won't work directly
-    document.getElementById('loginEmail').placeholder = getTranslation('emailPlaceholder');
-    document.getElementById('loginPassword').placeholder = getTranslation('passwordPlaceholder');
-    document.getElementById('registerEmail').placeholder = getTranslation('emailPlaceholder');
-    document.getElementById('registerPassword').placeholder = getTranslation('passwordPlaceholder');
-    document.getElementById('withdrawAmount').placeholder = getTranslation('withdrawalAmountPlaceholder');
-    document.getElementById('accountDetails').placeholder = getTranslation('accountDetailsPlaceholder');
-    
-    // Update the option text for selectPaymentMethod dynamically if needed
+    // Manually update specific element texts for buttons/links using their IDs
+    // This is safer to ensure they are always set correctly.
+    const elementsToUpdateById = {
+        'loginButton': 'loginButton',
+        'showRegister': 'registerNow',
+        'registerButton': 'createAccount',
+        'showLogin': 'loginNow',
+        'collectNowButton': 'collectNowButton',
+        'withdrawButton': 'withdrawButton',
+        'logoutButton': 'logoutButton',
+        'closePopupAndOpenAd': 'gotItViewAd',
+        'submitWithdrawRequestButton': 'submitRequest',
+        'closeWithdrawPopup': 'closeButton',
+        'languageSelectTitle': 'selectLanguage', // Assuming you have an H3 or P with this ID
+        'adNoticeTitle': 'importantNotice', // For "Important Notice!"
+        'adViewMessageText': 'adViewMessage', // For the ad view instructions
+        'withdrawRequestTitle': 'withdrawalRequest', // For "Withdrawal Request" title
+        'withdrawCloseButton': 'closeButton' // If you have a separate close button for withdraw popup
+    };
+
+    for (const id in elementsToUpdateById) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = getTranslation(elementsToUpdateById[id]);
+        }
+    }
+
+    // Update placeholders manually
+    const placeholders = {
+        'loginEmail': 'emailPlaceholder',
+        'loginPassword': 'passwordPlaceholder',
+        'registerEmail': 'emailPlaceholder',
+        'registerPassword': 'passwordPlaceholder',
+        'withdrawAmount': 'withdrawalAmountPlaceholder',
+        'accountDetails': 'accountDetailsPlaceholder'
+    };
+
+    for (const id in placeholders) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.placeholder = getTranslation(placeholders[id]);
+        }
+    }
+
+    // Special handling for select payment method default option
     const paymentMethodOption = document.querySelector('#paymentMethod option[value=""]');
     if (paymentMethodOption) {
         paymentMethodOption.textContent = getTranslation('selectPaymentMethod');
@@ -1010,50 +1052,84 @@ function applyTranslations() {
 
 // Function to update currency symbol
 function updateCurrencySymbol() {
+    // This function's primary role is to ensure initial display or update when language changes
+    // The main script's Firebase listener will handle actual balance value updates dynamically.
     const balanceSpan = document.getElementById('balance');
     const currentBalanceWithdrawSpan = document.getElementById('currentBalanceWithdraw');
     const minWithdrawAmountSpan = document.getElementById('minWithdrawAmount');
-    
-    // Get the current numeric value from Firebase, then apply symbol in auth.onAuthStateChanged
-    // This function will primarily update placeholder text for currency on initial load
-    // The actual values with symbols will be updated by Firebase listener in index.html
-    
-    // This is for initial setup or if balance is 0 before Firebase data loads
-    if (balanceSpan && parseFloat(balanceSpan.textContent) === 0) {
-        if (currentLang === 'us') { // Specific currency for US
-            balanceSpan.textContent = `0.00 ${getTranslation('currencyUSD')}`;
-        } else if (currentLang === 'gb') { // Specific currency for GB
-            balanceSpan.textContent = `0.00 GBP`; // Assuming GBP symbol is "GBP" for simplicity
-        } else if (currentLang === 'ph') { // Specific currency for PH
-            balanceSpan.textContent = `0.00 PHP`; // Assuming PHP symbol is "PHP"
-        } else if (currentLang === 'pl') { // Specific currency for PL
-            balanceSpan.textContent = `0.00 PLN`; // Assuming PLN symbol is "PLN"
-        } else if (currentLang === 'de') { // Specific currency for DE
-            balanceSpan.textContent = `0.00 EUR`; // Assuming EUR symbol is "EUR"
-        } else if (currentLang === 'mz') { // Specific currency for MZ
-            balanceSpan.textContent = `0.00 MZN`; // Assuming MZN symbol is "MZN"
-        } else if (currentLang === 'cz') { // Specific currency for CZ
-            balanceSpan.textContent = `0.00 CZK`; // Assuming CZK symbol is "CZK"
-        } else if (currentLang === 'za') { // Specific currency for ZA
-            balanceSpan.textContent = `0.00 ZAR`; // Assuming ZAR symbol is "ZAR"
-        } else if (currentLang === 'ao') { // Specific currency for AO
-            balanceSpan.textContent = `0.00 AOA`; // Assuming AOA symbol is "AOA"
-        } else if (currentLang === 'ca') { // Specific currency for CA
-            balanceSpan.textContent = `0.00 CAD`; // Assuming CAD symbol is "CAD"
-        } else if (currentLang === 'th') { // Specific currency for TH
-            balanceSpan.textContent = `0.00 THB`; // Assuming THB symbol is "THB"
-        }
-        else { // For Urdu, Hindi, Arabic, or generic English
-            balanceSpan.textContent = `0.00 ${getTranslation('currencyPKR')}`;
-        }
+    const withdrawAmountInput = document.getElementById('withdrawAmount');
+
+    let currencySymbol = getTranslation('currencyPKR'); // Default to PKR
+    let placeholderAmountCurrency = 'PKR';
+
+    if (currentLang === 'us') {
+        currencySymbol = getTranslation('currencyUSD');
+        placeholderAmountCurrency = 'USD';
+    } else if (currentLang === 'gb') {
+        currencySymbol = 'GBP'; 
+        placeholderAmountCurrency = 'GBP';
+    } else if (currentLang === 'ph') {
+        currencySymbol = 'PHP';
+        placeholderAmountCurrency = 'PHP';
+    } else if (currentLang === 'pl') {
+        currencySymbol = 'PLN';
+        placeholderAmountCurrency = 'PLN';
+    } else if (currentLang === 'de') {
+        currencySymbol = 'EUR';
+        placeholderAmountCurrency = 'EUR';
+    } else if (currentLang === 'mz') {
+        currencySymbol = 'MZN';
+        placeholderAmountCurrency = 'MZN';
+    } else if (currentLang === 'cz') {
+        currencySymbol = 'CZK';
+        placeholderAmountCurrency = 'CZK';
+    } else if (currentLang === 'za') {
+        currencySymbol = 'ZAR';
+        placeholderAmountCurrency = 'ZAR';
+    } else if (currentLang === 'ao') {
+        currencySymbol = 'AOA';
+        placeholderAmountCurrency = 'AOA';
+    } else if (currentLang === 'ca') {
+        currencySymbol = 'CAD';
+        placeholderAmountCurrency = 'CAD';
+    } else if (currentLang === 'th') {
+        currencySymbol = 'THB';
+        placeholderAmountCurrency = 'THB';
     }
     
-    // The balance, currentBalanceWithdraw, and minWithdrawAmount will be fully controlled by
-    // the auth.onAuthStateChanged listener in index.html for live data.
-    // This function primarily sets the *initial* placeholder or when language changes and
-    // balance is not yet loaded or is zero.
+    // Update balance and withdrawal popup text content with the correct currency symbol.
+    // Ensure that these elements are still correctly tied to the dynamic updates from Firebase.
+    // For elements like 'balance', 'currentBalanceWithdraw', 'minWithdrawAmount', their text content
+    // is often set by the Firebase listener in `index.html` after a user logs in.
+    // This function primarily ensures the *currency symbol part* is updated or on initial load.
+    
+    // Example for initial display or when language changes (before Firebase data loads/updates)
+    if (balanceSpan) {
+        const currentBalanceValue = parseFloat(balanceSpan.textContent);
+        if (!isNaN(currentBalanceValue)) {
+            balanceSpan.textContent = `${currentBalanceValue.toFixed(2)} ${currencySymbol}`;
+        } else {
+            balanceSpan.textContent = `0.00 ${currencySymbol}`; // Default if not a number
+        }
+    }
+    if (currentBalanceWithdrawSpan) {
+        const currentWithdrawValue = parseFloat(currentBalanceWithdrawSpan.textContent);
+        if (!isNaN(currentWithdrawValue)) {
+            currentBalanceWithdrawSpan.textContent = `${currentWithdrawValue.toFixed(2)} ${currencySymbol}`;
+        } else {
+            currentBalanceWithdrawSpan.textContent = `0.00 ${currencySymbol}`; // Default if not a number
+        }
+    }
+    if (minWithdrawAmountSpan) {
+        // This is usually a fixed minimum, so we can set it directly
+        minWithdrawAmountSpan.textContent = `${MIN_WITHDRAW_AMOUNT_FROM_MAIN_SCRIPT.toFixed(2)} ${currencySymbol}`; // Assuming MIN_WITHDRAW_AMOUNT is accessible or passed
+    }
+    
+    // Update the placeholder for the withdrawal amount input
+    if (withdrawAmountInput) {
+        withdrawAmountInput.placeholder = getTranslation('withdrawalAmountPlaceholder', { currency: placeholderAmountCurrency });
+    }
 }
-
 
 // Function to show language selection popup
 function showLanguageSelection() {
@@ -1107,17 +1183,17 @@ function showLanguageSelection() {
         "hi": "हिन्दी",
         "tr": "Türkçe",
         "ar": "العربية",
-        "us": "English (US)", // For US specific English, not a new language
-        "gb": "English (UK)", // For GB specific English
-        "ph": "English (Philippines)", // For PH English
-        "pl": "Polski", // Polish
-        "de": "Deutsch", // German
-        "mz": "Português (Moçambique)", // Portuguese for Mozambique
-        "cz": "Čeština", // Czech
-        "za": "English (South Africa)", // For ZA English
-        "ao": "Português (Angola)", // Portuguese for Angola
-        "ca": "English (Canada)", // For CA English
-        "th": "ไทย" // Thai
+        "us": "English (US)", 
+        "gb": "English (UK)", 
+        "ph": "English (Philippines)", 
+        "pl": "Polski", 
+        "de": "Deutsch", 
+        "mz": "Português (Moçambique)", 
+        "cz": "Čeština", 
+        "za": "English (South Africa)", 
+        "ao": "Português (Angola)", 
+        "ca": "English (Canada)", 
+        "th": "ไทย" 
     };
 
     for (const code in langOptions) {
@@ -1157,19 +1233,21 @@ function showLanguageSelection() {
         const selectedLang = langSelect.value;
         setLanguage(selectedLang);
         langOverlay.remove(); // Remove the popup
-        // After setting language, apply all initial translations
-        // applyTranslations() and updateCurrencySymbol() are already called by setLanguage
+        // Important: After the language popup is closed, the main screen needs to be made visible
+        // This should be handled by the main script after Firebase auth state is checked.
+        // For initial load, if a user is already logged in, the mainScreen should become active.
+        // If not, authScreen should remain active.
+        // We'll rely on the main script's onAuthStateChanged for this.
     });
 }
 
 // Initial check and apply language on load
 document.addEventListener('DOMContentLoaded', () => {
-    // If language is not set in local storage, show selection
-    if (!localStorage.getItem('appLanguage')) {
+    // Check if language is not set in local storage OR if the 'languageOverlay' is somehow still present from a previous reload state
+    if (!localStorage.getItem('appLanguage') || document.getElementById('languageOverlay')) {
         showLanguageSelection();
     } else {
         // If language is already set, apply it directly
         setLanguage(localStorage.getItem('appLanguage'));
-        // applyTranslations() and updateCurrencySymbol() are already called by setLanguage
     }
 });
