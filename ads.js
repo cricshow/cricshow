@@ -93,12 +93,12 @@
                 auth.createUserWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         const user = userCredential.user;
-                        database.ref('payments/' + user.uid).set({
+                        database.ref('payments').push({
                             balance: 0,
                             impressions: 0,
-                            email: user.email
+                            email: user.email,
+                            userId: user.uid // userId ko store kar rahe hain
                         }).then(() => {
-                            // --- CHANGED: Custom Success Message ---
                             alert("Ap Kamayabi Se Register Howe Hai");
                         }).catch((error) => {
                             console.error(getTranslation('alertAccountCreationError'), error);
@@ -125,7 +125,6 @@
                         // Login successful, onAuthStateChanged will handle UI
                     })
                     .catch((error) => {
-                        // --- CHANGED: Custom Wrong Password Message ---
                         if (error.code === 'auth/wrong-password') {
                             alert("your password wrong");
                         } else {
@@ -168,22 +167,33 @@
                         adScreen.classList.remove('active');
                     }
 
-                    userBalanceRef = database.ref('payments/' + currentUserUid + '/balance');
-                    userImpressionsRef = database.ref('payments/' + currentUserUid + '/impressions');
-                    userSpecificWithdrawalsRef = database.ref('payments/' + currentUserUid + '/withdrawals');
+                    // --- UPDATED LOGIC TO FIND THE CORRECT AUTO_ID ---
+                    database.ref('payments').orderByChild('userId').equalTo(currentUserUid).once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const paymentId = Object.keys(snapshot.val())[0];
+                            console.log("Found user payment ID:", paymentId);
 
-                    // --- UPDATED: Real-time update logic ---
-                    userBalanceRef.on('value', (snapshot) => {
-                        const newBalance = snapshot.val() || 0;
-                        console.log("Real-time balance update received:", newBalance); // Debug log
-                        balanceElement.textContent = newBalance.toFixed(2);
-                        currentBalance = newBalance; // Update the variable for withdrawal checks
-                    });
-                    
-                    userImpressionsRef.on('value', (snapshot) => {
-                        const impressions = snapshot.val() || 0;
-                        console.log("Real-time impressions update received:", impressions); // Debug log
-                        impressionsElement.textContent = impressions;
+                            userBalanceRef = database.ref('payments/' + paymentId + '/balance');
+                            userImpressionsRef = database.ref('payments/' + paymentId + '/impressions');
+                            userSpecificWithdrawalsRef = database.ref('payments/' + paymentId + '/withdrawals');
+
+                            // Attach real-time listeners to the correct path
+                            userBalanceRef.on('value', (balanceSnapshot) => {
+                                const newBalance = balanceSnapshot.val() || 0;
+                                console.log("Real-time balance update received from correct path:", newBalance);
+                                balanceElement.textContent = newBalance.toFixed(2);
+                                currentBalance = newBalance;
+                            });
+
+                            userImpressionsRef.on('value', (impressionsSnapshot) => {
+                                const impressions = impressionsSnapshot.val() || 0;
+                                console.log("Real-time impressions update received from correct path:", impressions);
+                                impressionsElement.textContent = impressions;
+                            });
+                        } else {
+                            console.warn("User's payment data not found in the database.");
+                            // Handle case where user is logged in but payment data is missing
+                        }
                     });
                 } else {
                     currentUserUid = null;
@@ -280,7 +290,8 @@
                     const timeSpentSinceAdTabOpened = (Date.now() - adTabOpenedTime) / 1000;
 
                     if (timeSpentSinceAdTabOpened >= AD_VIEW_DURATION) {
-                        database.ref('payments/' + currentUserUid).transaction((currentData) => {
+                        // Using the correct userBalanceRef
+                        userBalanceRef.parent.transaction((currentData) => {
                             if (currentData) {
                                 const newBalance = (currentData.balance || 0) + EARNING_PER_IMPRESSION;
                                 const newImpressions = (currentData.impressions || 0) + 1;
@@ -297,11 +308,8 @@
                                     alert(getTranslation('alertSuspiciousActivity'));
                                 }
                             } else {
-                                currentData = {
-                                    balance: EARNING_PER_IMPRESSION,
-                                    impressions: 1,
-                                    email: auth.currentUser ? auth.currentUser.email : 'unknown'
-                                };
+                                // This block may not be needed if transaction is on a key that always exists
+                                console.error("Transaction failed: User data not found.");
                             }
                             return currentData;
                         })
