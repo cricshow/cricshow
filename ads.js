@@ -41,13 +41,13 @@
             const registerEmail = document.getElementById('registerEmail');
             const registerPassword = document.getElementById('registerPassword');
             const registerButton = document.getElementById('registerButton');
-            const showLoginLink = document.getElementById('showLogin'); 
+            const showLoginLink = document.getElementById('showLogin');
 
             const mainScreen = document.getElementById('mainScreen');
             const balanceElement = document.getElementById('balance');
             const impressionsElement = document.getElementById('impressions');
             const collectNowButton = document.getElementById('collectNowButton');
-            const withdrawButton = document.getElementById('withdrawButton'); 
+            const withdrawButton = document.getElementById('withdrawButton');
             const logoutButton = document.getElementById('logoutButton');
 
             const adScreen = document.getElementById('adScreen');
@@ -56,26 +56,27 @@
             const adPopup = document.getElementById('adPopup');
             const closePopupAndOpenAdButton = document.getElementById('closePopupAndOpenAd');
 
-            const withdrawPopup = document.getElementById('withdrawPopup'); 
-            const currentBalanceWithdraw = document.getElementById('currentBalanceWithdraw'); 
-            const minWithdrawAmountElement = document.getElementById('minWithdrawAmount'); 
-            const withdrawAmountInput = document.getElementById('withdrawAmount'); 
-            const paymentMethodSelect = document.getElementById('paymentMethod'); 
-            const accountDetailsInput = document.getElementById('accountDetails'); 
-            const submitWithdrawRequestButton = document.getElementById('submitWithdrawRequest'); 
-            const closeWithdrawPopup = document.getElementById('closeWithdrawPopup'); 
+            const withdrawPopup = document.getElementById('withdrawPopup');
+            const currentBalanceWithdraw = document.getElementById('currentBalanceWithdraw');
+            const minWithdrawAmountElement = document.getElementById('minWithdrawAmount');
+            const withdrawAmountInput = document.getElementById('withdrawAmount');
+            const paymentMethodSelect = document.getElementById('paymentMethod');
+            const accountDetailsInput = document.getElementById('accountDetails');
+            const submitWithdrawRequestButton = document.getElementById('submitWithdrawRequest');
+            const closeWithdrawPopup = document.getElementById('closeWithdrawPopup');
+
 
             let currentUserUid = null;
             let userBalanceRef = null;
             let userImpressionsRef = null;
-            let userSpecificWithdrawalsRef = null; 
+            let userSpecificWithdrawalsRef = null;
             let timerInterval;
-            let adWindow = null; 
-            let adTabOpenedTime = 0; 
-            let isAdProcessActive = false; 
-            let hasImpressionCounted = false; 
-            let timerRemaining = AD_VIEW_DURATION; 
-            let currentBalance = 0; 
+            let adWindow = null;
+            let adTabOpenedTime = 0;
+            let isAdProcessActive = false;
+            let hasImpressionCounted = false;
+            let timerRemaining = AD_VIEW_DURATION;
+            let currentBalance = 0;
 
             // --- Authentication Logic ---
 
@@ -95,7 +96,7 @@
                         database.ref('payments/' + user.uid).set({
                             balance: 0,
                             impressions: 0,
-                            email: user.email 
+                            email: user.email
                         }).then(() => {
                             // --- CHANGED: Custom Success Message ---
                             alert("Ap Kamayabi Se Register Howe Hai");
@@ -160,8 +161,8 @@
             auth.onAuthStateChanged((user) => {
                 if (user) {
                     currentUserUid = user.uid;
-                    
-                    if (!isAdProcessActive) { 
+
+                    if (!isAdProcessActive) {
                         authScreen.classList.remove('active');
                         mainScreen.classList.add('active');
                         adScreen.classList.remove('active');
@@ -169,43 +170,31 @@
 
                     userBalanceRef = database.ref('payments/' + currentUserUid + '/balance');
                     userImpressionsRef = database.ref('payments/' + currentUserUid + '/impressions');
-                    userSpecificWithdrawalsRef = database.ref('payments/' + currentUserUid + '/withdrawals'); 
+                    userSpecificWithdrawalsRef = database.ref('payments/' + currentUserUid + '/withdrawals');
 
-                    // --- CHANGED: Added console log to verify real-time updates ---
+                    // --- UPDATED: Real-time update logic ---
                     userBalanceRef.on('value', (snapshot) => {
-                        currentBalance = snapshot.val() || 0; 
-                        console.log("Real-time balance update received:", currentBalance); // Debug log
-                        if (currentLang === 'en') {
-                            balanceElement.textContent = `${currentBalance.toFixed(2)} ${getTranslation('currencyUSD')}`;
-                        } else { 
-                            balanceElement.textContent = `${currentBalance.toFixed(2)} ${getTranslation('currencyPKR')}`;
-                        }
-                        minWithdrawAmountElement.textContent = MIN_WITHDRAW_AMOUNT.toFixed(2);
-                        if (currentLang === 'en') {
-                            currentBalanceWithdraw.textContent = `${currentBalance.toFixed(2)} ${getTranslation('currencyUSD')}`;
-                            minWithdrawAmountElement.textContent = `${MIN_WITHDRAW_AMOUNT.toFixed(2)} ${getTranslation('currencyUSD')}`;
-                        } else {
-                            currentBalanceWithdraw.textContent = `${currentBalance.toFixed(2)} ${getTranslation('currencyPKR')}`;
-                            minWithdrawAmountElement.textContent = `${MIN_WITHDRAW_AMOUNT.toFixed(2)} ${getTranslation('currencyPKR')}`;
-                        }
+                        const newBalance = snapshot.val() || 0;
+                        console.log("Real-time balance update received:", newBalance); // Debug log
+                        balanceElement.textContent = newBalance.toFixed(2);
+                        currentBalance = newBalance; // Update the variable for withdrawal checks
                     });
-
+                    
                     userImpressionsRef.on('value', (snapshot) => {
                         const impressions = snapshot.val() || 0;
                         console.log("Real-time impressions update received:", impressions); // Debug log
                         impressionsElement.textContent = impressions;
                     });
-
                 } else {
                     currentUserUid = null;
-                    if (userBalanceRef) userBalanceRef.off(); 
+                    if (userBalanceRef) userBalanceRef.off();
                     if (userImpressionsRef) userImpressionsRef.off();
-                    if (userSpecificWithdrawalsRef) userSpecificWithdrawalsRef.off(); 
+                    if (userSpecificWithdrawalsRef) userSpecificWithdrawalsRef.off();
 
                     mainScreen.classList.remove('active');
                     adScreen.classList.remove('active');
-                    authScreen.classList.add('active'); 
-                    
+                    authScreen.classList.add('active');
+
                     loginEmail.value = '';
                     loginPassword.value = '';
                     registerEmail.value = '';
@@ -250,12 +239,12 @@
             function startAdProcess() {
                 if (isAdProcessActive) {
                     console.log("Ad process already active. Skipping.");
-                    return; 
+                    return;
                 }
-                
+
                 isAdProcessActive = true;
-                hasImpressionCounted = false; 
-                timerRemaining = AD_VIEW_DURATION; 
+                hasImpressionCounted = false;
+                timerRemaining = AD_VIEW_DURATION;
 
                 if (timerInterval) {
                     clearInterval(timerInterval);
@@ -270,10 +259,10 @@
 
                 mainScreen.classList.remove('active');
                 adScreen.classList.add('active');
-                timerElement.textContent = timerRemaining; 
+                timerElement.textContent = timerRemaining;
 
                 adWindow = window.open(ADSTERRA_DIRECT_LINK, '_blank');
-                adTabOpenedTime = Date.now(); 
+                adTabOpenedTime = Date.now();
 
                 timerInterval = setInterval(() => {
                     timerRemaining--;
@@ -281,27 +270,27 @@
                         timerElement.textContent = timerRemaining;
                     } else {
                         clearInterval(timerInterval);
-                        timerElement.textContent = getTranslation('timeUpReturn'); 
+                        timerElement.textContent = getTranslation('timeUpReturn');
                     }
-                }, 1000); 
+                }, 1000);
             }
 
             window.onfocus = function() {
                 if (isAdProcessActive && currentUserUid && !hasImpressionCounted) {
-                    const timeSpentSinceAdTabOpened = (Date.now() - adTabOpenedTime) / 1000; 
+                    const timeSpentSinceAdTabOpened = (Date.now() - adTabOpenedTime) / 1000;
 
                     if (timeSpentSinceAdTabOpened >= AD_VIEW_DURATION) {
                         database.ref('payments/' + currentUserUid).transaction((currentData) => {
                             if (currentData) {
                                 const newBalance = (currentData.balance || 0) + EARNING_PER_IMPRESSION;
                                 const newImpressions = (currentData.impressions || 0) + 1;
-                                
-                                console.log(`Impression counted. Old balance: ${currentData.balance.toFixed(2)}, New balance: ${newBalance.toFixed(2)}, Old impressions: ${currentData.impressions}, New impressions: ${newImpressions}`); 
-                                
+
+                                console.log(`Impression counted. Old balance: ${currentData.balance.toFixed(2)}, New balance: ${newBalance.toFixed(2)}, Old impressions: ${currentData.impressions}, New impressions: ${newImpressions}`);
+
                                 currentData.balance = newBalance;
                                 currentData.impressions = newImpressions;
-                                
-                                if (currentData.impressions > 5000 && currentData.balance < 1000) { 
+
+                                if (currentData.impressions > 5000 && currentData.balance < 1000) {
                                     console.warn("Suspiciously high impressions for user, might be an attempt to cheat.");
                                     currentData.impressions = 0;
                                     currentData.balance = 0;
@@ -311,7 +300,7 @@
                                 currentData = {
                                     balance: EARNING_PER_IMPRESSION,
                                     impressions: 1,
-                                    email: auth.currentUser ? auth.currentUser.email : 'unknown' 
+                                    email: auth.currentUser ? auth.currentUser.email : 'unknown'
                                 };
                             }
                             return currentData;
@@ -319,18 +308,18 @@
                         .then((result) => {
                             hasImpressionCounted = true;
                             const newBalance = result.snapshot.val().balance;
-                            alert(getTranslation('alertImpressionCounted') + "\nNaya Balance: " + newBalance.toFixed(2) + " PKR"); 
+                            alert(getTranslation('alertImpressionCounted') + "\nNaya Balance: " + newBalance.toFixed(2) + " PKR");
                         })
                         .catch((error) => {
-                            console.error("Firebase update ERROR:", error); 
+                            console.error("Firebase update ERROR:", error);
                             alert(getTranslation('alertMoneyUpdateIssue'));
                         })
                         .finally(() => {
                             isAdProcessActive = false;
-                            clearInterval(timerInterval); 
+                            clearInterval(timerInterval);
                             if (adWindow && !adWindow.closed) {
                                 try {
-                                    adWindow.close(); 
+                                    adWindow.close();
                                 } catch (e) {
                                     console.warn("Could not close ad window on return:", e);
                                 }
@@ -342,12 +331,12 @@
                     } else {
                         const remainingTime = AD_VIEW_DURATION - Math.floor(timeSpentSinceAdTabOpened);
                         alert(getTranslation('alertEarlyReturn', { remainingTime: remainingTime }));
-                        
-                        isAdProcessActive = false; 
-                        clearInterval(timerInterval); 
+
+                        isAdProcessActive = false;
+                        clearInterval(timerInterval);
                         if (adWindow && !adWindow.closed) {
                             try {
-                                adWindow.close(); 
+                                adWindow.close();
                             } catch (e) {
                                 console.warn("Could not close ad window after early return:", e);
                             }
@@ -355,7 +344,7 @@
                         adScreen.classList.remove('active');
                         mainScreen.classList.add('active');
                     }
-                } 
+                }
             };
 
             // --- Withdrawal Logic ---
@@ -370,19 +359,19 @@
                     alert(getTranslation('alertNoInternetWithdraw'));
                     return;
                 }
-                
+
                 if (currentBalance < MIN_WITHDRAW_AMOUNT) {
                     alert("Apka Balance Kam Hai");
                     return;
                 }
-                
+
                 userSpecificWithdrawalsRef.once('value', snapshot => {
                     let hasPendingRequest = false;
                     snapshot.forEach(childSnapshot => {
                         const withdrawal = childSnapshot.val();
-                        if (withdrawal.status === 'Pending' || withdrawal.status === 'Processing') { 
+                        if (withdrawal.status === 'Pending' || withdrawal.status === 'Processing') {
                             hasPendingRequest = true;
-                            return true; 
+                            return true;
                         }
                     });
 
@@ -390,10 +379,10 @@
                         alert(getTranslation('alertPendingWithdrawal'));
                         return;
                     } else {
-                        withdrawAmountInput.value = currentBalance.toFixed(2); 
-                        paymentMethodSelect.value = ''; 
-                        accountDetailsInput.value = ''; 
-                        withdrawPopup.style.display = 'flex'; 
+                        withdrawAmountInput.value = currentBalance.toFixed(2);
+                        paymentMethodSelect.value = '';
+                        accountDetailsInput.value = '';
+                        withdrawPopup.style.display = 'flex';
                     }
                 }).catch(error => {
                     console.error("Error checking pending withdrawals (under user's payments node):", error);
@@ -402,14 +391,14 @@
             });
 
             closeWithdrawPopup.addEventListener('click', () => {
-                withdrawPopup.style.display = 'none'; 
+                withdrawPopup.style.display = 'none';
             });
 
             submitWithdrawRequestButton.addEventListener('click', () => {
                 const withdrawAmount = parseFloat(withdrawAmountInput.value);
                 const paymentMethod = paymentMethodSelect.value;
                 const accountDetails = accountDetailsInput.value.trim();
-                const userEmail = auth.currentUser ? auth.currentUser.email : 'N/A'; 
+                const userEmail = auth.currentUser ? auth.currentUser.email : 'N/A';
 
                 if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAW_AMOUNT || withdrawAmount > currentBalance) {
                     alert(getTranslation('alertEnterValidAmount', { minAmount: MIN_WITHDRAW_AMOUNT.toFixed(2), currentBalance: currentBalance.toFixed(2) }));
@@ -425,13 +414,13 @@
                 }
 
                 const newWithdrawal = {
-                    userId: currentUserUid, 
+                    userId: currentUserUid,
                     userEmail: userEmail,
                     amount: withdrawAmount,
                     method: paymentMethod,
                     accountDetails: accountDetails,
-                    requestDate: new Date().toISOString(), 
-                    status: 'Pending' 
+                    requestDate: new Date().toISOString(),
+                    status: 'Pending'
                 };
 
                 userSpecificWithdrawalsRef.push(newWithdrawal)
@@ -441,12 +430,12 @@
                             if (currentBalanceData) {
                                 return (currentBalanceData || 0) - withdrawAmount;
                             }
-                            return 0; 
+                            return 0;
                         });
                     })
                     .then(() => {
                         console.log("Balance deducted after withdrawal request.");
-                        withdrawPopup.style.display = 'none'; 
+                        withdrawPopup.style.display = 'none';
                     })
                     .catch((error) => {
                         console.error(getTranslation('alertWithdrawRequestError'), error);
